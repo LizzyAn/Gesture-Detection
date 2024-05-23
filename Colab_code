@@ -1,0 +1,71 @@
+import cv2
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.models import load_model
+from google.colab import files
+import os
+
+# Upload gesture image/video and test video
+print("Please upload the gesture image or video.")
+gesture_file = files.upload()
+print("Please upload the test video.")
+test_video_file = files.upload()
+
+gesture_filename = list(gesture_file.keys())[0]
+test_video_filename = list(test_video_file.keys())[0]
+
+# Load gesture image or extract frames from gesture video
+gesture_frames = []
+
+if gesture_filename.endswith(('png', 'jpg', 'jpeg')):
+    gesture_image = cv2.imread(gesture_filename)
+    gesture_image = cv2.resize(gesture_image, (64, 64))  # Resizing to fit model input
+    gesture_frames.append(gesture_image)
+else:
+    cap = cv2.VideoCapture(gesture_filename)
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+        frame = cv2.resize(frame, (64, 64))
+        gesture_frames.append(frame)
+    cap.release()
+
+# Convert gesture frames to numpy array
+gesture_frames = np.array(gesture_frames)
+
+# Load a pre-trained model or create a new model for gesture recognition
+# For simplicity, we're assuming a pre-trained model exists. Replace with actual model path.
+# model = load_model('path_to_your_model.h5')
+
+# For the sake of this prototype, we will mock the gesture detection model
+def mock_detect_gesture(frame, gesture_frames):
+    # Simulating detection logic
+    # Replace this with actual model inference logic
+    similarity = np.mean(frame == gesture_frames[0])  # Simple similarity check
+    return similarity > 0.9  # Mock condition for detection
+
+# Process the test video and detect gesture
+cap = cv2.VideoCapture(test_video_filename)
+fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+output_filename = 'output_detected.mp4'
+out = cv2.VideoWriter(output_filename, fourcc, 20.0, (int(cap.get(3)), int(cap.get(4))))
+
+while cap.isOpened():
+    ret, frame = cap.read()
+    if not ret:
+        break
+    
+    resized_frame = cv2.resize(frame, (64, 64))
+    detected = mock_detect_gesture(resized_frame, gesture_frames)
+    
+    if detected:
+        cv2.putText(frame, "DETECTED", (frame.shape[1] - 150, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+    
+    out.write(frame)
+
+cap.release()
+out.release()
+
+# Download the output video automatically
+files.download(output_filename)
